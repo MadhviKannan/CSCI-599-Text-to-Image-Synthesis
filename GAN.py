@@ -106,6 +106,11 @@ def viz_grid(Xs, padding):
         y1 += H + padding
     return grid
 
+def max_pool(input, kernel_size, stride):
+    ksize = [1, kernel_size, kernel_size, 1]
+    strides = [1, stride, stride, 1]
+    return tf.nn.max_pool(input, ksize=ksize, strides=strides, padding='SAME')
+
 def conv2d(input, kernel_size, stride, num_filter, name = 'conv2d'):
     with tf.variable_scope(name):
         stride_shape = [1, stride, stride, 1]
@@ -159,10 +164,13 @@ class DCGAN(object):
 
         self.tracked_noise = np.random.normal(0, 1, [64, self.code_size])
 
-        self.real_input = tf.placeholder(tf.float32, [None, 32, 32, 3])
-        self.real_label = tf.placeholder(tf.float32, [None, 1])
-        self.fake_label = tf.placeholder(tf.float32, [None, 1])
-        self.noise = tf.placeholder(tf.float32, [None, self.code_size])
+        self.real_sentences = tf.placeholder(tf.float32, [None, 4800])
+        self.real_images = tf.placeholder(tf.float32, [None, 28,28,1])
+        
+        self.real_labels = tf.placeholder(tf.float32, [None, 100])
+        
+        #self.fake_label = tf.placeholder(tf.float32, [None, 100])
+        self.noise = tf.placeholder(tf.float32, [None, 256])
         
         self.is_train = tf.placeholder(tf.bool)
         
@@ -180,32 +188,52 @@ class DCGAN(object):
         # so set variable sharing if this is not the first invocation of this function.
         with tf.variable_scope('dis', reuse = self._dis_called):
             self._dis_called = True
-            dis_conv1 = conv2d(input, 4, 2, 32, 'conv1')
+            
+            dis_conv1 = conv2d(input, 7, 1, 32, 'conv1')
             dis_lrelu1 = leaky_relu(dis_conv1)
-            dis_conv2 = conv2d(dis_lrelu1, 4, 2, 64, 'conv2')
+            dis_maxpool1 = max_pool(dis_lrelu1,3,2 )
+            
+            dis_conv2 = conv2d(dis_maxpool1, 5, 1, 64, 'conv2')
             dis_batchnorm2 = batch_norm(dis_conv2, self.is_train)
             dis_lrelu2 = leaky_relu(dis_batchnorm2)
-            dis_conv3 = conv2d(dis_lrelu2, 4, 2, 128, 'conv3')
+            dis_maxpool2 = max_pool(dis_lrelu2,3,2)     
+            
+            dis_conv3 = conv2d(dis_maxpool2, 5, 1, 32, 'conv3')
             dis_batchnorm3 = batch_norm(dis_conv3, self.is_train)
             dis_lrelu3 = leaky_relu(dis_batchnorm3)
-            dis_reshape3 = tf.reshape(dis_lrelu3, [-1, 4 * 4 * 128])
-            dis_fc4 = fc(dis_reshape3, 1, 'fc4')
-            return dis_fc4
+            dis_mazpool3 = max_pool(dis_lrelu3,3,2) 
+            
+            dis_reshape3 = tf.reshape(dis_mazpool3, [-1, 4 * 4 * 32])
+            dis_fc4 = fc(dis_reshape3, 256, 'fc4')
+            dis_lrelu3 = leaky_relu(dis_fc4)
+            dis_fc5 = fc(dis_reshape3, 100, 'fc5')
+            
+            return dis_fc5
 
-    def _generator(self, input):
+    def _generator(self, noise,text_embedding, image_input):
         with tf.variable_scope('gen', reuse = self._gen_called):
             self._gen_called = True
-            gen_fc1 = fc(input, 4 * 4 * 128, 'fc1')
-            gen_reshape1 = tf.reshape(gen_fc1, [-1, 4, 4, 128])
-            gen_batchnorm1 = batch_norm(gen_reshape1, self.is_train)
+            gen_fc1 = fc(text_embedding, 256, 'fc1')
+            gen_relu1 = leaky_relu(gen_fc1)
+            z_text = tf.concat(1,[noise, gen_relu1])
+            
+            gen_fc2 = fc(z_text, 784*2, 'fc2')
+            gen_relu2 = leaky_relu(gen_fc2)
+            
+            gen_reshape1 = tf.reshape(gen_relu2, [-1, 28, 28, 2])
+            image_reshape = tf.concat(1,[image_input, gen_reshape1])
+            
+            
+            gen_batchnorm1 = batch_norm(image_reshape, self.is_train)
             gen_lrelu1 = leaky_relu(gen_batchnorm1)
-            gen_conv2 = conv2d_transpose(gen_lrelu1, 4, 2, 64, 'conv2')
+            
+            gen_conv2 = conv2d(gen_lrelu1, 4, 2, 64, 'conv2')
             gen_batchnorm2 = batch_norm(gen_conv2, self.is_train)
             gen_lrelu2 = leaky_relu(gen_batchnorm2)
-            gen_conv3 = conv2d_transpose(gen_lrelu2, 4, 2, 32, 'conv3')
+            gen_conv3 = conv2d(gen_lrelu2, 4, 2, 32, 'conv3')
             gen_batchnorm3 = batch_norm(gen_conv3, self.is_train)
             gen_lrelu3 = leaky_relu(gen_batchnorm3)
-            gen_conv4 = conv2d_transpose(gen_lrelu3, 4, 2, 3, 'conv4')
+            gen_conv4 = conv2d(gen_lrelu3, 4, 2, 1, 'conv4')
             gen_sigmoid4 = tf.sigmoid(gen_conv4)
             return gen_sigmoid4
 
@@ -224,8 +252,8 @@ class DCGAN(object):
         # Prob 2-1: complete the definition of these operations                        #
         ################################################################################
         
-        self.fake_samples_op = self._generator(self.noise)
-        self.dis_loss_op = self._loss(self.real_label,self._discriminator(self.real_input)) + self._loss(self.fake_label,self._discriminator(self.fake_samples_op))
+        self.fake_samples_op = self._generator(self.noise, self.real_sentence,self.real_image)
+        self.dis_loss_op = self._loss(self.real_label,self._discriminator(self.fake_samples_op))
         self.gen_loss_op = self._loss(self.real_label, self._discriminator(self.fake_samples_op))
         
         
@@ -291,16 +319,19 @@ class DCGAN(object):
             for i in range(num_train // self.batch_size):
                 step += 1
 
-                batch_samples = train_samples[i * self.batch_size : (i + 1) * self.batch_size]
-                noise = np.random.normal(0, 1, [self.batch_size, self.code_size])
-                zeros = np.zeros([self.batch_size, 1])
-                ones = np.ones([self.batch_size, 1])
-        
+                image_batch = train_images[i * self.batch_size : (i + 1) * self.batch_size]
+                sentence_batch = train_sentences[i * self.batch_size : (i + 1) * self.batch_size]
+                noise = np.random.normal(0, 1, [self.batch_size, 256])
+                labels = np.zeros([self.batch_size, 100])
+                
+                for j in range(i * self.batch_size,(i + 1) * self.batch_size ):
+                    labels[j][train_labels[j]] = 1
+
                 ################################################################################
                 # Prob 2-1: complete the feed dictionary                                       #
                 ################################################################################
                 
-                dis_feed_dict = {self.real_input:batch_samples, self.real_label:ones, self.fake_label:zeros, self.noise:noise,self.is_train:True}
+                dis_feed_dict = {self.real_images:image_batch, self.real_sentences:sentence_batch ,self.real_labels:labels, self.noise:noise,self.is_train:True}
         
                 ################################################################################
                 #                               END OF YOUR CODE                               #
@@ -312,7 +343,7 @@ class DCGAN(object):
                 # Prob 2-1: complete the feed dictionary                                       #
                 ################################################################################
                 
-                gen_feed_dict = {self.noise:noise,self.real_label:ones,self.is_train:True}
+                gen_feed_dict = {self.noise:noise,self.real_images:image_batch, self.real_sentences:sentence_batch, self.real_labels:labels,self.is_train:True}
         
                 ################################################################################
                 #                               END OF YOUR CODE                               #
@@ -436,3 +467,15 @@ class DCGAN(object):
         for i in range(initial_codes.shape[0]):
             actmax_results[i:i+1] = self.actmax_one_sample(initial_codes[i:i+1])
         return actmax_results.clip(0, 1)
+    
+tf.reset_default_graph()
+
+with tf.Session() as sess:
+    with tf.device('/cpu:0'):
+        dcgan = DCGAN()
+        sess.run(tf.global_variables_initializer())
+        dcgan.train(sess, train_samples)
+        dis_var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, 'dis')
+        gen_var_list = tf.get_collection(tf.GraphKeys.GLOBAL_VARIABLES, 'gen')
+        saver = tf.train.Saver(dis_var_list + gen_var_list)
+        saver.save(sess, 'model/dcgan')
