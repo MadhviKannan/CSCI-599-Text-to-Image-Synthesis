@@ -40,7 +40,7 @@ Text to image synthesis using DC-GAN
 ----------------------------------
 At the beginning, we referred to the architecture from the "Generative Adversarial Text to Image Synthesis" paper. They use skip-thought vector to encode natural language, along with noise to go though generator, built by a deep convolutional neural network. The architecture is given below.
 
-![Architecture of text-to-image synthesis](https://imgur.com/K5DzKWu.jpg =450x)
+![Architecture of text-to-image synthesis](https://imgur.com/K5DzKWu.jpg =450x) </br>
 *Architecture of text-to-image synthesis* [^fn1]
 
 ### Sentence embedding
