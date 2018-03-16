@@ -54,7 +54,7 @@ We use a pre-trained corpus to encode our sentence. Similar to word2vec, a popul
 
 With encoded sentence, we can build our generative neural network using normal deep convolutional layers. Our general architecture is:
 
-![DC-GAN architecture](https://imgur.com/F09PuVw.jpg "DC-GAN architecture")
+![DC-GAN architecture](https://imgur.com/F09PuVw.jpg "DC-GAN architecture") </br>
 
 ### Discriminator
 For the discriminator, we use three convolutional layers, followed by ReLU activation, batch normalization and max pooling. Finally, it goes through two fully-connected layers and sigmoid functions to the loss function.
@@ -62,7 +62,7 @@ For the discriminator, we use three convolutional layers, followed by ReLU activ
 ### Generator
 For the generator, we have tried several different architectures, according to in which stage different components are involved. We tried different stages. For example, we first concatenate all inputs together and let them go though convolutional layers. Our results were not good, and generated images have no diversity although random is involved. So we tried to use L2 normalization and rearrange the input order. We let input image go though some convolutional layers first, then concatenating with sentence vector. We add noise after then to emphasise the weight of noise. We push the combined data though four convolutional layers, followed by two fully-connected layers and tanh activation function. The final structure of our generator is given below, which is also used in some other architectures.
 
-![Architecture of Generator](https://imgur.com/WlsAUgJ.jpg "Architecture of Generator")
+![Architecture of Generator](https://imgur.com/WlsAUgJ.jpg "Architecture of Generator") </br>
 
 ### Training Conditioned DC-GAN
 DC-GAN's training is quite fast with the help of GPU. However, as you can see below, the training was not successful. Generated graphs are hard to recognize as digits, and what's worse is there is a lack of diversity even upon adding noise as one of inputs.
