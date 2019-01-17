@@ -23,3 +23,13 @@ Sample input and desired outputs are shown below:
 | Text: Square the number        |
 | Image: the number ![](https://i.imgur.com/s53Eqgg.jpg "8") |   ![84](https://imgur.com/iV5rIBQ.jpg "64")            |
 
+
+Dataset
+-------------
+The dataset we have employed for this project is the MNIST dataset. We have used opencv to read, modify and concatenate the images, creating datasets of different sizes, and forms for the different networks we ran. 
+
+We automatically generate a double digit dataset for numbers ranging from 0-99 by making use of the original MNIST dataset. Each of the numbers have a fixed number of hand written digits associated with it, which can be set by the user. The double digits are formed by randomly concatenating and resizing two handwritten digits to the same size as the MNIST images. i.e 28x28x1. 
+
+We have considered different types of sentences, for different arithmetic operations, like multiplication, addition and squaring, to diversify the kinds of sentences used. We have created the dataset using these diverse set of sentences, for different kinds of MNIST images. 
+
+The data split we used for the generation was 60,000 sentences for training, and 10,000 sentences for testing.
