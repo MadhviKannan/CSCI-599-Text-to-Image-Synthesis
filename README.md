@@ -33,3 +33,25 @@ We automatically generate a double digit dataset for numbers ranging from 0-99 b
 We have considered different types of sentences, for different arithmetic operations, like multiplication, addition and squaring, to diversify the kinds of sentences used. We have created the dataset using these diverse set of sentences, for different kinds of MNIST images. 
 
 The data split we used for the generation was 60,000 sentences for training, and 10,000 sentences for testing.
+
+
+Text to image synthesis using DC-GAN
+----------------------------------
+At the beginning, we referred to the architecture from the "Generative Adversarial Text to Image Synthesis" paper. They use skip-thought vector to encode natural language, along with noise to go though generator, built by a deep convolutional neural network. The architecture is given below.
+
+![Architecture of text-to-image synthesis](https://imgur.com/K5DzKWu.jpg =450x) </br>
+*Architecture of text-to-image synthesis* [^fn1]
+
+### Sentence embedding
+
+We use a pre-trained corpus to encode our sentence. Similar to word2vec, a popular word embedding model, skip-thought vector model uses the sentence itself and its context to train the neural network in order to get the vector. The major difference is that it uses recursive neural networks to deal with sentences. Because training vectors consumes time and requires a large amount of language data, we first try to use the pre-trained model for our sentences.
+
+![Architecture of skip-thought vectors](https://cdn-images-1.medium.com/max/2000/1*MQXaRQ3BsTHpn0cfOXcbag.png "Architecture of skip-thought vectors")
+*How sentences encoded into embedded vectors* [^fn2]
+
+### General Architecture
+
+With encoded sentence, we can build our generative neural network using normal deep convolutional layers. Our general architecture is:
+
+![DC-GAN architecture](https://imgur.com/F09PuVw.jpg "DC-GAN architecture") </br>
+
