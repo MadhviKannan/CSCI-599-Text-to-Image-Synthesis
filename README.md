@@ -55,3 +55,26 @@ With encoded sentence, we can build our generative neural network using normal d
 
 ![DC-GAN architecture](https://imgur.com/F09PuVw.jpg "DC-GAN architecture") </br>
 
+### Discriminator
+For the discriminator, we use three convolutional layers, followed by ReLU activation, batch normalization and max pooling. Finally, it goes through two fully-connected layers and sigmoid functions to the loss function.
+
+### Generator
+For the generator, we have tried several different architectures, according to in which stage different components are involved. We tried different stages. For example, we first concatenate all inputs together and let them go though convolutional layers. Our results were not good, and generated images have no diversity although random is involved. So we tried to use L2 normalization and rearrange the input order. We let input image go though some convolutional layers first, then concatenating with sentence vector. We add noise after then to emphasise the weight of noise. We push the combined data though four convolutional layers, followed by two fully-connected layers and tanh activation function. The final structure of our generator is given below, which is also used in some other architectures.
+
+![Architecture of Generator](https://imgur.com/WlsAUgJ.jpg "Architecture of Generator") </br>
+
+### Training Conditioned DC-GAN
+DC-GAN's training is quite fast with the help of GPU. However, as you can see below, the training was not successful. Generated graphs are hard to recognize as digits, and what's worse is there is a lack of diversity even upon adding noise as one of inputs.
+
+Here is diagram of our training loss, along with one output after the final epoch.
+
+![](https://imgur.com/BTwT9f1.jpg =240x) ![](https://imgur.com/KLhWzbx.jpg =240x) ![](https://imgur.com/ieDdvzU.jpg =220x)
+
+### Discussion and next model
+In order to introduce some diversity in the output, several tricks were tried such as
+1) Adding L2 normalization
+2) Using Wasserstein distance in loss function
+3) Iterative batch size reduction
+4) Make the generator stronger as discriminator loss was going to zero. 
+
+However, the problem of mode collapse still persisted where the network was only learning one type of output. Besides, we also noticed that there was a problem with the model. The discriminator tries to guess whether the image is real or generated. But, it has no way to guess whether it is the number that is expected. It could be any one of the hundred numbers and the discriminator would accept it as a number. So, there was a need for a differnt model. 
