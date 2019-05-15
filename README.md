@@ -78,3 +78,90 @@ In order to introduce some diversity in the output, several tricks were tried su
 4) Make the generator stronger as discriminator loss was going to zero. 
 
 However, the problem of mode collapse still persisted where the network was only learning one type of output. Besides, we also noticed that there was a problem with the model. The discriminator tries to guess whether the image is real or generated. But, it has no way to guess whether it is the number that is expected. It could be any one of the hundred numbers and the discriminator would accept it as a number. So, there was a need for a differnt model. 
+
+A Double Discriminator GAN (DD-GAN) approach 
+----------------------------------
+The issue we faced with the previous network was that there was no information being passed to the discriminator to confirm whether the generated output from the text input was correct solution of the operation or not. Since this text embedding is based on an inference, i.e, the solution of the text is an answer to an arithmetic operation, we realised it essential to have a classifier network to classify the number being generated. 
+
+![](https://imgur.com/1jJbfch.jpg)
+
+The above architecture describes the new network where the generator combines the losses of 2 separate networks:
+1) The discriminator which distinguishes between a real and fake sample
+2) The classifier network which classifies the generated output/real output images into one of the 100 classes
+
+The generator tries to maximize the discriminator's loss on the generated output and minimize the loss of the classifier on the generated output for the real class. 
+
+The architecture of the generator and discriminator is quite similar to the one explained in DC-GAN. 
+
+
+### One-hot version of input sentences
+
+Original version of sentence embeddings use pre-trained skip-thoughts vectors, which are slow to run and hard to customize. The pre-trained dataset uses a large corpus of natural language, which makes every vector very long, and not suitable for our case. So we decided to change it to a simpler one. One way is to train the dataset by ourselves using a limited corpus, another way is to just use the one-hot vector to represent our sentence, because currently, our sentences contain limited number of words, and we do not need to determine the semantic relationship between the words. After we successfully train the whole model, we can train our own sentence embedding.
+
+### Training DD-GAN and Results
+![](https://imgur.com/aj1u1HI.jpg =240x)![](https://imgur.com/PNaFLWN.jpg =240x)![](https://imgur.com/QGCqXeX.jpg =220x)
+
+It can be seen from the above results that the problem of mode collapse hasn't been solved. 
+
+All numbers being generated look similar so the generator seems to be learning only one kind of solution.
+
+Even though the graphs of the two losses are similar, the network does not seem to learn the images. 
+
+Separate Networks
+----------------------------------
+As shown from the results (or the lack thereof) above in DDGAN, we thought it would make more sense for us to break the network down into separate parts.
+
+Image generation and operation inference. We have tried to build separate networks for inference and generation and hope to find the issues the networks were struggling with. 
+
+### Operation Inference 
+
+The inference network would take a natural language sentence and try to compute the number implied by the sentence. Say for example, an input sentence 'Multiply 6 by 4' would have to produce an output of 24. 
+
+We tried two kinds of networks for this purpose. The first is a simple feed-forward network. The input to the network is a 'multi-hot' embedding of the sentence and the output of the network is a one-hot representation of the expected solution. 
+
+We chose to create our own embeddings because any pre-trained embedding would be created from a much larger dataset, and therefore much of the information in the embeddings would be unnecessary at best, and a distraction at worst.The 'multi-hot' embedding for the sentence was created as a numpy array of size equal to the size of the vocabulary. In our case, the vocabulary is a small set of unique words in the dataset. The sentence embeddings were created by turning on the bit corresponding to each word in the sentence. 
+
+The feed-forward neural network explained above was trained on 60,000 example for 10 epochs. The training accuracy reached 1 very quickly, suggesting that it overfit the data very quickly. We tested it on the test data, and found the accuracy to be very low. 
+
+So, we trained an RNN with a LSTM cell on the same dataset. That did not improve the accuracy either. 
+
+### Image Generation
+
+In this network, the generator takes in a one hot encoded vector concatenated with noise as an input. The one hot encoded vectors are representations of numbers ranging from 0-99. 
+
+The discriminator takes in the generated output, and real output images to distinguish between what's real and what's fake. 
+
+The generator tries to maximize the discriminator's loss on the generated output and minimizes the discriminator's loss on the real output. The discriminator tries to maximize its on the real output and minimize its loss on the generated output. 
+
+The figure below depicts a simple representation of the GAN used for this purpose. The data split was 60,000 images for training.
+
+![](https://imgur.com/0aAdzG4.jpg =240x) ![](https://imgur.com/aChgpzH.jpg =240x) 
+
+The GAN being used for this purpose is a normal Vanilla GAN  
+
+### Results
+
+Results were to generate a sample of data for the first 64 (Index 0 - 64) data points was set. 
+
+
+ ![](https://imgur.com/0gL3jed.jpg =240x) ![](https://imgur.com/LgUVF3b.jpg =240x) ![](https://imgur.com/Q3364fO.jpg =220x)
+
+It can be seen that the results are somewhat satisfactory. Even though the exact results haven't been learned, the network has been able to learn rows of 20's, 30's, 40's ,50's, 60's and some of them are in order as well. 
+
+The results are still not entirely satisfactory. We tried several methods like AC-GAN[^fn3], conditional-GAN and DDGAN as seen above. Unfortunately, we were unable to come up with better results with any of them. 
+
+Conclusion and Future Scope
+----------------------------------
+
+We have tried many different networks, with different approaches, loss functions, and techniques. However, the results haven't been very satisfactory. The problem is harder than we initially expected. Mode collapse seems to be a challenge that is pending to be solved. This remains to be a work-in-progress. We are determined to continue working on this project even after the course ends. 
+
+
+[^gan]: Goodfellow, Ian, et al. "Generative Adversarial Networks" arXiv preprint arXiv:1406.2661. 2014.
+
+[^fn0]: LeCun, Yann, et al. "Gradient-based learning applied to document recognition." Proceedings of the IEEE, 86(11):2278-2324, 1998.
+
+[^fn1]: Reed, Scott, et al. "Generative Adversarial Text-to-Image Synthesis" Proceedings of The 33rd International Conference on Machine Learning. 2016.
+
+[^fn2]: Kiros, Ryan, et al. "Skip-Thought Vectors" arXiv preprint arXiv:1506.06726. 2015.
+
+[^fn3]: Odena, Augustus, et al. "Conditional Image Synthesis with Auxiliary Classifier GANs" Proceedings of the 34 th International Conference on Machine Learning. 2017.
